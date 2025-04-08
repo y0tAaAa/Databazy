@@ -1,53 +1,52 @@
--- Таблица Cipher
-CREATE TABLE IF NOT EXISTS Cipher (
+-- Таблица Ciphers
+CREATE TABLE IF NOT EXISTS Ciphers (
     cipher_id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    cipher_type VARCHAR(50),        -- Caesar, Substitution, Vigenere, ...
-    historical_period VARCHAR(100),
-    origin VARCHAR(100),
+    name VARCHAR(100) NOT NULL UNIQUE,
+    historical_period VARCHAR(50),
+    origin VARCHAR(50),
     encryption_principles TEXT,
     encrypted_text TEXT,
     discovery_date DATE
 );
 
--- Таблица Model
-CREATE TABLE IF NOT EXISTS Model (
+-- Таблица Models
+CREATE TABLE IF NOT EXISTS Models (
     model_id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,      -- Например, GPT-2, GPT-Neo
-    specialization VARCHAR(100),
+    name VARCHAR(50) NOT NULL,
+    specialization VARCHAR(50),
     version VARCHAR(20),
-    usage_date DATE
+    CONSTRAINT unique_model UNIQUE (name, version)
 );
 
--- Таблица DecryptionAttempt
-CREATE TABLE IF NOT EXISTS DecryptionAttempt (
+-- Таблица Decryption_Attempts
+CREATE TABLE IF NOT EXISTS Decryption_Attempts (
     attempt_id SERIAL PRIMARY KEY,
-    cipher_id INT,
-    model_id INT,
+    cipher_id INT NOT NULL,
+    model_id INT NOT NULL,
     start_time TIMESTAMP,
     end_time TIMESTAMP,
-    success BOOLEAN,                -- 1/0 заменяем на true/false
-    percent_correct DECIMAL(5,2),
-    FOREIGN KEY (cipher_id) REFERENCES Cipher(cipher_id),
-    FOREIGN KEY (model_id) REFERENCES Model(model_id)
+    success BOOLEAN,
+    correctness_percentage DECIMAL(5,2) CHECK (correctness_percentage BETWEEN 0 AND 100),
+    FOREIGN KEY (cipher_id) REFERENCES Ciphers(cipher_id),
+    FOREIGN KEY (model_id) REFERENCES Models(model_id)
 );
 
--- Таблица DecryptionResult
-CREATE TABLE IF NOT EXISTS DecryptionResult (
+-- Таблица Decryption_Results
+CREATE TABLE IF NOT EXISTS Decryption_Results (
     result_id SERIAL PRIMARY KEY,
-    cipher_id INT,
+    attempt_id INT NOT NULL,
     model_output TEXT,
-    similarity DECIMAL(5,2),
-    readability DECIMAL(5,2),
-    FOREIGN KEY (cipher_id) REFERENCES Cipher(cipher_id)
+    similarity_measure DECIMAL(5,2) CHECK (similarity_measure BETWEEN 0 AND 100),
+    readability_level DECIMAL(5,2) CHECK (readability_level BETWEEN 0 AND 100),
+    FOREIGN KEY (attempt_id) REFERENCES Decryption_Attempts(attempt_id)
 );
 
--- Таблица ManualCorrection
-CREATE TABLE IF NOT EXISTS ManualCorrection (
+-- Таблица Manual_Corrections
+CREATE TABLE IF NOT EXISTS Manual_Corrections (
     correction_id SERIAL PRIMARY KEY,
-    result_id INT,
-    corrected_by VARCHAR(100),
-    percent_changed DECIMAL(5,2),
+    result_id INT NOT NULL,
+    corrector VARCHAR(100),
+    changed_percentage DECIMAL(5,2) CHECK (changed_percentage BETWEEN 0 AND 100),
     final_text TEXT,
-    FOREIGN KEY (result_id) REFERENCES DecryptionResult(result_id)
+    FOREIGN KEY (result_id) REFERENCES Decryption_Results(result_id)
 );
